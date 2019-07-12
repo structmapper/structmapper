@@ -8,6 +8,19 @@ structmapper for golang, copy value from struct to struct. Extend copier(https:/
 ## Usage
 
 ```
+type User struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Age  int32  `json:"age" structmapper:"description"`
+}
+
+type Node struct {
+	Id          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+func Example() {
 	user := &User{
 		ID:   "12345",
 		Name: "山田太郎",
@@ -41,4 +54,5 @@ structmapper for golang, copy value from struct to struct. Extend copier(https:/
 	// Output:
 	// User &{ID:12345 Name:山田太郎 Age:32}
 	// Node &{Id:12345 Name:山田太郎 Description:32}
+}
 ```
