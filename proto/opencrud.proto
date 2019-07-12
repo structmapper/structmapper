@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package proto;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+message User {
+	// id: ID!
+	string id = 1;
+	// name: String!
+	string name = 2;
+	// age: Int!
+	int64 age = 3;
+	// sex: Sex!
+	string sex = 4;
+	// weight: Float!
+	double weight = 5;
+	// alive: Boolean!
+	bool alive = 6;
+	// num64: Int64!
+	int64 num64 = 7;
+	// optional_num: Int
+	google.protobuf.Int64Value optional_num = 8;
+	// optional_num64: Int64
+	google.protobuf.Int64Value optional_num64 = 9;
+	// birth_date: Date
+	string birth_date = 10;
+	// created_at: Time!
+	google.protobuf.Timestamp created_at = 11;
+	// modified_at: Time!
+	google.protobuf.Timestamp modified_at = 12;
+}
