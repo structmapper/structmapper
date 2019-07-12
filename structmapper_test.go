@@ -4,12 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"git.dmm.com/cto-tech/graphql-opencrud/lib/gql"
-	"git.dmm.com/cto-tech/graphql-opencrud/lib/structmapper/test/graphql"
-	"git.dmm.com/cto-tech/graphql-opencrud/lib/structmapper/test/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/haruwo/structmapper/dto"
+	"github.com/haruwo/structmapper/proto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,48 +27,48 @@ func TestCopy(t *testing.T) {
 		},
 		{
 			Name: "same struct copy",
-			From: &graphql.User{
+			From: &dto.User{
 				ID:            "12345",
 				Name:          "Satoshi Nakamoto",
 				Age:           47,
 				Weight:        12.3,
-				Sex:           graphql.SexFemale,
+				Sex:           dto.SexFemale,
 				Alive:         true,
 				BirthDate:     String("1999-11-17"),
 				Num64:         123,
-				OptionalNum:   Int(123),
+				OptionalNum:   Int32(123),
 				OptionalNum64: Int64(123),
 				CreatedAt:     mustTime(time.Parse(time.RFC3339, "2019-07-07T12:34:56Z")),
 				ModifiedAt:    mustTime(time.Parse(time.RFC3339, "2019-07-07T12:34:56Z")),
 			},
-			EmptyTo: new(graphql.User),
-			ExpectedTo: &graphql.User{
+			EmptyTo: new(dto.User),
+			ExpectedTo: &dto.User{
 				ID:            "12345",
 				Name:          "Satoshi Nakamoto",
 				Age:           47,
 				Weight:        12.3,
-				Sex:           graphql.SexFemale,
+				Sex:           dto.SexFemale,
 				Alive:         true,
 				BirthDate:     String("1999-11-17"),
 				Num64:         123,
-				OptionalNum:   Int(123),
+				OptionalNum:   Int32(123),
 				OptionalNum64: Int64(123),
 				CreatedAt:     mustTime(time.Parse(time.RFC3339, "2019-07-07T12:34:56Z")),
 				ModifiedAt:    mustTime(time.Parse(time.RFC3339, "2019-07-07T12:34:56Z")),
 			},
 		},
 		{
-			Name: "graphql struct to protobuf struct",
-			From: &graphql.User{
+			Name: "dto struct to protobuf struct",
+			From: &dto.User{
 				ID:            "12345",
 				Name:          "Satoshi Nakamoto",
 				Age:           47,
 				Weight:        12.3,
-				Sex:           graphql.SexFemale,
+				Sex:           dto.SexFemale,
 				Alive:         true,
 				BirthDate:     String("1999-11-17"),
 				Num64:         123,
-				OptionalNum:   Int(123),
+				OptionalNum:   Int32(123),
 				OptionalNum64: Int64(123),
 				CreatedAt:     mustTime(time.Parse(time.RFC3339, "2019-07-07T12:34:56Z")),
 				ModifiedAt:    mustTime(time.Parse(time.RFC3339, "2019-07-07T12:34:56Z")),
@@ -91,7 +90,7 @@ func TestCopy(t *testing.T) {
 			},
 		},
 		{
-			Name: "protobuf struct to graphql struct",
+			Name: "protobuf struct to dto struct",
 			From: &proto.User{
 				Id:            "12345",
 				Name:          "Satoshi Nakamoto",
@@ -106,17 +105,17 @@ func TestCopy(t *testing.T) {
 				CreatedAt:     mustTimestampProto(ptypes.TimestampProto(mustTime(time.Parse(time.RFC3339, "2019-07-07T12:34:56Z")))),
 				ModifiedAt:    mustTimestampProto(ptypes.TimestampProto(mustTime(time.Parse(time.RFC3339, "2019-07-07T12:34:56Z")))),
 			},
-			EmptyTo: new(graphql.User),
-			ExpectedTo: &graphql.User{
+			EmptyTo: new(dto.User),
+			ExpectedTo: &dto.User{
 				ID:            "12345",
 				Name:          "Satoshi Nakamoto",
 				Age:           47,
 				Weight:        12.3,
-				Sex:           graphql.SexFemale,
+				Sex:           dto.SexFemale,
 				Alive:         true,
 				BirthDate:     String("1999-11-17"),
 				Num64:         123,
-				OptionalNum:   Int(123),
+				OptionalNum:   Int32(123),
 				OptionalNum64: Int64(123),
 				CreatedAt:     mustTime(time.Parse(time.RFC3339, "2019-07-07T12:34:56Z")),
 				ModifiedAt:    mustTime(time.Parse(time.RFC3339, "2019-07-07T12:34:56Z")),
@@ -150,11 +149,11 @@ func mustTimestampProto(t *timestamp.Timestamp, err error) *timestamp.Timestamp 
 	return t
 }
 
-func Int(i int) *int {
+func Int32(i int32) *int32 {
 	return &i
 }
 
-func Int64(i gql.Int64) *gql.Int64 {
+func Int64(i int64) *int64 {
 	return &i
 }
 

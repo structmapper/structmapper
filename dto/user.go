@@ -22,6 +22,6 @@ type User struct {
 type Sex string
 
 const (
-	Male   Sex = "Male"
-	Female Sex = "Female"
+	SexMale   Sex = "Male"
+	SexFemale Sex = "Female"
 )

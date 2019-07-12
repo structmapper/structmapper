@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"git.dmm.com/cto-tech/graphql-opencrud/lib/structmapper"
+	"github.com/haruwo/structmapper"
 )
 
 type User struct {
