@@ -4,6 +4,7 @@ structmapper for golang, copy value from struct to struct. Extend copier(https:/
 
 ## Feature
 * Copy from field to field with same name, `structmapper` tag, `json` tag
+* Copy different types with Transformer func
 
 ## Usage
 
