@@ -10,11 +10,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ProtobufModule is Transformer Module of between golang/protobuf/ptypes types and go types
 func ProtobufModule(m Mapper) {
 	registerTimestamp(m)
 	registerWrappers(m)
 }
 
+// for ptypes/timestamp.Timestamp
 func registerTimestamp(m Mapper) {
 	// string <-> Timestamp
 	m.RegisterTransformer(
@@ -98,6 +100,7 @@ func registerTimestamp(m Mapper) {
 
 }
 
+// for ptypes/wrappers.*
 func registerWrappers(m Mapper) {
 	for _, tm := range protoTypeMappings {
 		registerWrapper(m, tm)
