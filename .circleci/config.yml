@@ -16,7 +16,7 @@ jobs:
       - restore_cache:
           name: Restore go modules cache
           keys:
-              - v1-mod-{{ .Branch }}-{{ checksum "go/go.mod" }}
+              - v1-mod-{{ .Branch }}-{{ checksum "go.mod" }}
       - run:
           name: Vendoring
           command: go mod download
@@ -27,7 +27,7 @@ jobs:
             go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.1
       - save_cache:
           name: Save go modules cache
-          key: v1-mod-{{ .Branch }}-{{ checksum "go/go.mod" }}
+          key: v1-mod-{{ .Branch }}-{{ checksum "go.mod" }}
           paths:
               - ~/go/pkg/mod/cache
       - run:
