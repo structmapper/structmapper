@@ -1,0 +1,45 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.12.7
+        environment:
+          GO111MODULE: "on"
+    environment:
+      TEST_RESULTS: /tmp/test-results
+    steps:
+      - checkout
+      - run: mkdir -p $TEST_RESULTS
+      - restore_cache:
+          keys:
+            - v1-pkg-cache
+      - restore_cache:
+          name: Restore go modules cache
+          keys:
+              - v1-mod-{{ .Branch }}-{{ checksum "go.mod" }}
+      - run:
+          name: Vendoring
+          command: go mod download
+      - run:
+          name: Install test tools
+          command: |
+            go install github.com/jstemmer/go-junit-report
+            go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.1
+      - save_cache:
+          name: Save go modules cache
+          key: v1-mod-{{ .Branch }}-{{ checksum "go.mod" }}
+          paths:
+              - ~/go/pkg/mod/cache
+      - run:
+          name: Run test
+          command: |
+            trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
+            go test ./... | tee ${TEST_RESULTS}/go-test.out
+      - run:
+          name: Run lint
+          command: golangci-lint run ./...
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: raw-test-output
+      - store_test_results:
+          path: /tmp/test-results
