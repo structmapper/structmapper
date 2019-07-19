@@ -12,6 +12,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type EnumPtrStruct struct {
+	SexPtr *dto.Sex `structmapper:"sex"`
+}
+
+type EnumStringStruct struct {
+	Sex string `structmapper:"sex"`
+}
+
 func TestCopy(t *testing.T) {
 	cases := []struct {
 		Name       string
@@ -121,9 +129,31 @@ func TestCopy(t *testing.T) {
 				ModifiedAt:    mustTime(time.Parse(time.RFC3339, "2019-07-07T12:34:56Z")),
 			},
 		},
+		{
+			Name: "enum pointer to string",
+			From: &EnumPtrStruct{
+				SexPtr: func() *dto.Sex { sex := dto.SexFemale; return &sex }(),
+			},
+			EmptyTo: new(EnumStringStruct),
+			ExpectedTo: &EnumStringStruct{
+				Sex: "Female",
+			},
+		},
+		{
+			Name: "nil enum pointer to string",
+			From: &EnumPtrStruct{
+				SexPtr: func() *dto.Sex { var sex *dto.Sex; return sex }(),
+			},
+			EmptyTo: new(EnumStringStruct),
+			ExpectedTo: &EnumStringStruct{
+				Sex: "",
+			},
+		},
 	}
 
-	mapper := New().Install(ProtobufModule)
+	mapper := New().
+		Install(ProtobufModule).
+		Install(StringerModule)
 	for _, _c := range cases {
 		c := _c
 		t.Run(c.Name, func(t *testing.T) {
