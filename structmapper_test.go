@@ -7,8 +7,8 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/haruwo/structmapper/dto"
-	"github.com/haruwo/structmapper/proto"
+	"github.com/haruwo/structmapper/test/dto"
+	"github.com/haruwo/structmapper/test/proto"
 	"github.com/stretchr/testify/assert"
 )
 
