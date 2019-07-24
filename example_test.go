@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/haruwo/structmapper"
+	"github.com/structmapper/structmapper"
 )
 
 type User struct {
