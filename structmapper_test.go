@@ -188,6 +188,7 @@ func TestCopy(t *testing.T) {
 	}
 
 	mapper := New().
+		EnableLogging().
 		Install(ProtobufModule).
 		Install(StringerModule)
 	for _, _c := range cases {

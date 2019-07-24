@@ -6,7 +6,6 @@ package structmapper
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"reflect"
 	"strings"
 	"sync"
@@ -16,7 +15,10 @@ import (
 
 // New Mapper
 func New() Mapper {
-	return &mapper{transformerRepository: newTransformerRepository()}
+	return &mapper{
+		transformerRepository: newTransformerRepository(),
+		logger:                newNopLogger(),
+	}
 }
 
 // Mapper Struct mapper
@@ -32,6 +34,8 @@ type Mapper interface {
 
 	// Install Module
 	Install(Module) Mapper
+
+	EnableLogging() Mapper
 }
 
 // Mapper installable module
@@ -89,10 +93,16 @@ func (c *copyCommand) CopyTo(toValue interface{}) (err error) {
 
 type mapper struct {
 	transformerRepository *transformerRepository
+	logger                Logger
 }
 
 func (m *mapper) Install(module Module) Mapper {
 	module(m)
+	return m
+}
+
+func (m *mapper) EnableLogging() Mapper {
+	m.logger = newStdLogger()
 	return m
 }
 
@@ -134,7 +144,7 @@ func (m *mapper) convertSlice(from reflect.Value, toType reflect.Type) (reflect.
 	for i := 0; i < amount; i++ {
 		source := from.Index(i)
 
-		log.Printf("convertSlice[%d](%+v -> %+v)", i, source, destType)
+		m.logger.Printf("convertSlice[%d](%+v -> %+v)", i, source, destType)
 		dest, err := m.convert(source, indirectType(destType))
 		if err != nil {
 			return to, err
@@ -161,7 +171,7 @@ func (m *mapper) convertStruct(from reflect.Value, toType reflect.Type) (reflect
 				if toField, found := toFields[name]; found {
 					// has field
 					if toValue := to.FieldByName(toField.Name); toValue.IsValid() && toValue.CanSet() {
-						log.Printf("copyValue(%s:%+v -> %s:%+v)", fromField.Name, fromValue.Kind(), toField.Name, toValue.Kind())
+						m.logger.Printf("copyValue(%s:%+v -> %s:%+v)", fromField.Name, fromValue.Kind(), toField.Name, toValue.Kind())
 						if err := m.copyValue(toValue, fromValue); err != nil {
 							return to, err
 						}
