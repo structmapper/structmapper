@@ -21,11 +21,4 @@ type User struct {
 	ModifiedAt    time.Time    `json:"modified_at"`
 }
 
-type Sex string
-
-const (
-	SexMale   Sex = "Male"
-	SexFemale Sex = "Female"
-)
-
 type CustomInt64 int64
