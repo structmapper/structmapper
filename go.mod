@@ -1,4 +1,4 @@
-module github.com/haruwo/structmapper
+module github.com/structmapper/structmapper
 
 go 1.12
 
