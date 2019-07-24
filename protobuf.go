@@ -142,7 +142,7 @@ type protoTypeMapping struct {
 
 func (m *protoTypeMapping) ContainsInAcceptableTypes(t reflect.Type) bool {
 	for _, at := range m.AcceptableTypes {
-		if t == at {
+		if t.ConvertibleTo(at) {
 			return true
 		}
 	}

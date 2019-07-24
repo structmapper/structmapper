@@ -7,18 +7,10 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/haruwo/structmapper/test/dto"
-	"github.com/haruwo/structmapper/test/proto"
 	"github.com/stretchr/testify/assert"
+	"github.com/structmapper/structmapper/test/dto"
+	"github.com/structmapper/structmapper/test/proto"
 )
-
-type EnumPtrStruct struct {
-	SexPtr *dto.Sex `structmapper:"sex"`
-}
-
-type EnumStringStruct struct {
-	Sex string `structmapper:"sex"`
-}
 
 func TestCopy(t *testing.T) {
 	cases := []struct {
@@ -45,7 +37,7 @@ func TestCopy(t *testing.T) {
 				BirthDate:     String("1999-11-17"),
 				Num64:         123,
 				OptionalNum:   Int32(123),
-				OptionalNum64: Int64(123),
+				OptionalNum64: CustonInt64(123),
 				Numbers:       []int64{1, 2, 3},
 				Times: []time.Time{
 					mustTime(time.Parse(time.RFC3339, "2019-07-07T12:34:56Z")),
@@ -66,7 +58,7 @@ func TestCopy(t *testing.T) {
 				BirthDate:     String("1999-11-17"),
 				Num64:         123,
 				OptionalNum:   Int32(123),
-				OptionalNum64: Int64(123),
+				OptionalNum64: CustonInt64(123),
 				Numbers:       []int64{1, 2, 3},
 				Times: []time.Time{
 					mustTime(time.Parse(time.RFC3339, "2019-07-07T12:34:56Z")),
@@ -89,7 +81,7 @@ func TestCopy(t *testing.T) {
 				BirthDate:     String("1999-11-17"),
 				Num64:         123,
 				OptionalNum:   Int32(123),
-				OptionalNum64: Int64(123),
+				OptionalNum64: CustonInt64(123),
 				Numbers:       []int64{1, 2, 3},
 				Times: []time.Time{
 					mustTime(time.Parse(time.RFC3339, "2019-07-07T12:34:56Z")),
@@ -154,7 +146,7 @@ func TestCopy(t *testing.T) {
 				BirthDate:     String("1999-11-17"),
 				Num64:         123,
 				OptionalNum:   Int32(123),
-				OptionalNum64: Int64(123),
+				OptionalNum64: CustonInt64(123),
 				Numbers:       []int64{1, 2, 3},
 				Times: []time.Time{
 					mustTime(time.Parse(time.RFC3339, "2019-07-07T12:34:56Z")),
@@ -224,6 +216,18 @@ func Int64(i int64) *int64 {
 	return &i
 }
 
+func CustonInt64(i dto.CustomInt64) *dto.CustomInt64 {
+	return &i
+}
+
 func String(s string) *string {
 	return &s
+}
+
+type EnumPtrStruct struct {
+	SexPtr *dto.Sex `structmapper:"sex"`
+}
+
+type EnumStringStruct struct {
+	Sex string `structmapper:"sex"`
 }
