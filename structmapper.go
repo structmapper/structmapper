@@ -15,7 +15,10 @@ import (
 
 // New Mapper
 func New() Mapper {
-	return &mapper{transformerRepository: newTransformerRepository()}
+	return &mapper{
+		transformerRepository: newTransformerRepository(),
+		logger:                newNopLogger(),
+	}
 }
 
 // Mapper Struct mapper
@@ -31,6 +34,8 @@ type Mapper interface {
 
 	// Install Module
 	Install(Module) Mapper
+
+	EnableLogging() Mapper
 }
 
 // Mapper installable module
@@ -88,6 +93,7 @@ func (c *copyCommand) CopyTo(toValue interface{}) (err error) {
 
 type mapper struct {
 	transformerRepository *transformerRepository
+	logger                Logger
 }
 
 func (m *mapper) Install(module Module) Mapper {
@@ -95,99 +101,92 @@ func (m *mapper) Install(module Module) Mapper {
 	return m
 }
 
+func (m *mapper) EnableLogging() Mapper {
+	m.logger = newStdLogger()
+	return m
+}
+
 func (m *mapper) From(fromValue interface{}) CopyCommand {
 	return &copyCommand{mapper: m, fromValue: fromValue}
 }
 
-func (m *mapper) Copy(toValue, fromValue interface{}) (err error) {
-	var (
-		isSlice bool
-		amount  = 1
-		from    = indirect(reflect.ValueOf(fromValue))
-		to      = indirect(reflect.ValueOf(toValue))
-	)
+func (m *mapper) Copy(toValue, fromValue interface{}) error {
+	return m.copyValue(reflect.ValueOf(toValue), reflect.ValueOf(fromValue))
+}
 
-	if !to.CanAddr() {
-		return errors.Errorf("copy to value is unaddressable %+v -> %+v", fromValue, toValue)
-	}
-
-	// Return is from value is invalid
+func (m *mapper) copyValue(to, from reflect.Value) error {
+	// Return if invalid
 	if !from.IsValid() {
-		return
+		return nil
 	}
 
-	fromType := indirectType(from.Type())
-	toType := indirectType(to.Type())
-
-	// Just set it if possible to assign
-	// And need to do copy anyway if the type is struct
-	if fromType.Kind() != reflect.Struct && from.Type().AssignableTo(to.Type()) {
-		to.Set(from)
-		return
+	if from.Kind() == reflect.Ptr && to.Kind() == reflect.Ptr && from.IsNil() {
+		//set `to` to nil if from is nil
+		to.Set(reflect.Zero(to.Type()))
+		return nil
 	}
 
-	if fromType.Kind() != reflect.Struct || toType.Kind() != reflect.Struct {
-		return
+	v, err := m.convert(indirect(from), indirectType(to.Type()))
+	if err != nil {
+		return err
 	}
 
-	if to.Kind() == reflect.Slice {
-		isSlice = true
-		if from.Kind() == reflect.Slice {
-			amount = from.Len()
-		}
-	}
+	indirectAsNonNil(to).Set(v)
+
+	return nil
+}
+
+func (m *mapper) convertSlice(from reflect.Value, toType reflect.Type) (reflect.Value, error) {
+	amount := from.Len()
+	destType := toType.Elem()
+	to := reflect.MakeSlice(toType, 0, amount)
 
 	for i := 0; i < amount; i++ {
-		var dest, source reflect.Value
+		source := from.Index(i)
 
-		if isSlice {
-			// source
-			if from.Kind() == reflect.Slice {
-				source = indirect(from.Index(i))
-			} else {
-				source = indirect(from)
-			}
-			// dest
-			dest = indirect(reflect.New(toType).Elem())
-		} else {
-			source = indirect(from)
-			dest = indirect(to)
+		m.logger.Printf("convertSlice[%d](%+v -> %+v)", i, source, destType)
+		dest, err := m.convert(source, indirectType(destType))
+		if err != nil {
+			return to, err
 		}
 
-		// check source
-		if source.IsValid() {
-			toFields := asNamesToFieldMap(deepFields(toType))
+		if destType.Kind() == reflect.Ptr {
+			to = reflect.Append(to, forceAddr(dest))
+		} else {
+			to = reflect.Append(to, dest)
+		}
+	}
 
-			// Copy from field to field
-			for _, fromField := range deepFields(fromType) {
-				if fromValue := source.FieldByName(fromField.Name); fromValue.IsValid() {
-					for _, name := range namesOf(fromField) {
-						if toField, found := toFields[name]; found {
-							// has field
-							if toValue := dest.FieldByName(toField.Name); toValue.IsValid() {
-								if toValue.CanSet() {
-									if !m.set(toValue, fromValue) {
-										if err := m.Copy(toValue.Addr().Interface(), fromValue.Interface()); err != nil {
-											return err
-										}
-									}
-								}
+	return to, nil
+}
+
+func (m *mapper) convertStruct(from reflect.Value, toType reflect.Type) (reflect.Value, error) {
+	to := reflect.New(toType).Elem()
+	toFields := asNamesToFieldMap(deepFields(to.Type()))
+
+	// Copy from field to field
+	copied := make(map[string]struct{})
+
+	for _, fromField := range deepFields(from.Type()) {
+		if fromValue := from.FieldByName(fromField.Name); fromValue.IsValid() {
+			for _, name := range namesOf(fromField) {
+				if toField, found := toFields[name]; found {
+					// has field
+					if _, ok := copied[toField.Name]; !ok {
+						if toValue := to.FieldByName(toField.Name); toValue.IsValid() && toValue.CanSet() {
+							m.logger.Printf("copyValue(%s:%+v -> %s:%+v)", fromField.Name, fromValue.Kind(), toField.Name, toValue.Kind())
+							if err := m.copyValue(toValue, fromValue); err != nil {
+								return to, err
 							}
 						}
+						copied[toField.Name] = struct{}{}
 					}
 				}
 			}
 		}
-
-		if isSlice {
-			if dest.Addr().Type().AssignableTo(to.Type().Elem()) {
-				to.Set(reflect.Append(to, dest.Addr()))
-			} else if dest.Type().AssignableTo(to.Type().Elem()) {
-				to.Set(reflect.Append(to, dest))
-			}
-		}
 	}
-	return
+
+	return to, nil
 }
 
 func deepFields(reflectType reflect.Type) []reflect.StructField {
@@ -214,51 +213,72 @@ func indirect(reflectValue reflect.Value) reflect.Value {
 	return reflectValue
 }
 
+func indirectAsNonNil(v reflect.Value) reflect.Value {
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			v.Set(reflect.New(v.Type().Elem()))
+		}
+		return v.Elem()
+	}
+
+	return v
+}
+
 func indirectType(reflectType reflect.Type) reflect.Type {
-	for reflectType.Kind() == reflect.Ptr || reflectType.Kind() == reflect.Slice {
+	for reflectType.Kind() == reflect.Ptr {
 		reflectType = reflectType.Elem()
 	}
 	return reflectType
 }
 
-func (m *mapper) set(to, from reflect.Value) bool {
-	if from.IsValid() && to.IsValid() {
-		if to.Kind() == reflect.Ptr {
-			//set `to` to nil if from is nil
-			if from.Kind() == reflect.Ptr && from.IsNil() {
-				to.Set(reflect.Zero(to.Type()))
-				return true
-			} else if to.IsNil() {
-				to.Set(reflect.New(to.Type().Elem()))
-			}
-			to = to.Elem()
-		}
-
-		if transformer := m.transformerRepository.Get(Target{To: to.Type(), From: from.Type()}); transformer != nil {
-			v, err := transformer(from, to.Type())
-			if err != nil {
-				return false
-			}
-			to.Set(v)
-
-		} else if from.Type().ConvertibleTo(to.Type()) {
-			to.Set(from.Convert(to.Type()))
-
-		} else if scanner, ok := to.Addr().Interface().(sql.Scanner); ok {
-			err := scanner.Scan(from.Interface())
-			if err != nil {
-				return false
-			}
-
-		} else if from.Kind() == reflect.Ptr {
-			return m.set(to, from.Elem())
-
-		} else {
-			return false
-
-		}
+func (m *mapper) convert(from reflect.Value, toType reflect.Type) (reflect.Value, error) {
+	if !from.IsValid() {
+		return reflect.Zero(toType), nil
 	}
-	return true
+
+	if transformer := m.transformerRepository.Get(Target{To: toType, From: from.Type()}); transformer != nil {
+		return transformer(from, toType)
+
+	} else if from.Type().ConvertibleTo(toType) {
+		return from.Convert(toType), nil
+
+	} else if toType.AssignableTo(scannerType) {
+		v := reflect.New(toType).Elem()
+		scanner := v.Interface().(sql.Scanner)
+		err := scanner.Scan(from.Interface())
+		if err != nil {
+			return reflect.Zero(toType), err
+		}
+		return v, nil
+
+	} else if from.Kind() == reflect.Ptr {
+		return m.convert(from.Elem(), toType)
+
+	} else if from.Kind() == reflect.Struct && toType.Kind() == reflect.Struct {
+		return m.convertStruct(from, toType)
+
+	} else if from.Kind() == reflect.Slice && toType.Kind() == reflect.Slice {
+		return m.convertSlice(from, toType)
+
+	} else {
+		return reflect.Zero(toType), errors.Errorf("can't convert data %+v -> %+v", from, toType)
+
+	}
+}
+
+var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
+
+func forceAddr(v reflect.Value) reflect.Value {
+	if v.Kind() == reflect.Ptr {
+		return v
+	} else if v.CanAddr() {
+		return v.Addr()
+	}
+
+	// copy to CanAddr
+	ptr := reflect.New(v.Type())
+	ptr.Elem().Set(v)
+	return ptr
 }
 
 func namesOf(field reflect.StructField) []string {

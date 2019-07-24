@@ -24,10 +24,14 @@ message User {
 	google.protobuf.Int64Value optional_num = 8;
 	// optional_num64: Int64
 	google.protobuf.Int64Value optional_num64 = 9;
+	// numbers: [Int64!]
+	repeated int64 numbers = 10;
+	// times: [Time!]
+	repeated google.protobuf.Timestamp times = 11;
 	// birth_date: Date
-	string birth_date = 10;
+	string birth_date = 12;
 	// created_at: Time!
-	google.protobuf.Timestamp created_at = 11;
+	google.protobuf.Timestamp created_at = 13;
 	// modified_at: Time!
-	google.protobuf.Timestamp modified_at = 12;
+	google.protobuf.Timestamp modified_at = 14;
 }
