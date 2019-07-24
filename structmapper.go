@@ -165,16 +165,21 @@ func (m *mapper) convertStruct(from reflect.Value, toType reflect.Type) (reflect
 	toFields := asNamesToFieldMap(deepFields(to.Type()))
 
 	// Copy from field to field
+	copied := make(map[string]struct{})
+
 	for _, fromField := range deepFields(from.Type()) {
 		if fromValue := from.FieldByName(fromField.Name); fromValue.IsValid() {
 			for _, name := range namesOf(fromField) {
 				if toField, found := toFields[name]; found {
 					// has field
-					if toValue := to.FieldByName(toField.Name); toValue.IsValid() && toValue.CanSet() {
-						m.logger.Printf("copyValue(%s:%+v -> %s:%+v)", fromField.Name, fromValue.Kind(), toField.Name, toValue.Kind())
-						if err := m.copyValue(toValue, fromValue); err != nil {
-							return to, err
+					if _, ok := copied[toField.Name]; !ok {
+						if toValue := to.FieldByName(toField.Name); toValue.IsValid() && toValue.CanSet() {
+							m.logger.Printf("copyValue(%s:%+v -> %s:%+v)", fromField.Name, fromValue.Kind(), toField.Name, toValue.Kind())
+							if err := m.copyValue(toValue, fromValue); err != nil {
+								return to, err
+							}
 						}
+						copied[toField.Name] = struct{}{}
 					}
 				}
 			}
