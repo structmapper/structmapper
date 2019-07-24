@@ -242,14 +242,8 @@ func (m *mapper) convert(from reflect.Value, toType reflect.Type) (reflect.Value
 	} else if from.Type().ConvertibleTo(toType) {
 		return from.Convert(toType), nil
 
-	} else if toType.AssignableTo(scannerType) {
-		v := reflect.New(toType).Elem()
-		scanner := v.Interface().(sql.Scanner)
-		err := scanner.Scan(from.Interface())
-		if err != nil {
-			return reflect.Zero(toType), err
-		}
-		return v, nil
+	} else if m.canScan(toType) {
+		return m.scan(from, toType)
 
 	} else if from.Kind() == reflect.Ptr {
 		return m.convert(from.Elem(), toType)
@@ -264,6 +258,20 @@ func (m *mapper) convert(from reflect.Value, toType reflect.Type) (reflect.Value
 		return reflect.Zero(toType), errors.Errorf("can't convert data %+v -> %+v", from, toType)
 
 	}
+}
+
+func (m *mapper) canScan(t reflect.Type) bool {
+	return reflect.PtrTo(t).Implements(scannerType)
+}
+
+func (m *mapper) scan(from reflect.Value, toType reflect.Type) (reflect.Value, error) {
+	v := reflect.New(toType)
+	scanner := v.Interface().(sql.Scanner)
+	err := scanner.Scan(from.Interface())
+	if err != nil {
+		return reflect.Zero(toType), err
+	}
+	return v.Elem(), nil
 }
 
 var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
