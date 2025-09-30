@@ -238,26 +238,22 @@ func (m *mapper) convert(from reflect.Value, toType reflect.Type) (reflect.Value
 
 	if transformer := m.transformerRepository.Get(Target{To: toType, From: from.Type()}); transformer != nil {
 		return transformer(from, toType)
-
-	} else if from.Type().ConvertibleTo(toType) {
-		return from.Convert(toType), nil
-
-	} else if m.canScan(toType) {
-		return m.scan(from, toType)
-
-	} else if from.Kind() == reflect.Ptr {
-		return m.convert(from.Elem(), toType)
-
 	} else if from.Kind() == reflect.Struct && toType.Kind() == reflect.Struct {
+		if from.Type() == toType {
+			return from.Convert(toType), nil
+		}
 		return m.convertStruct(from, toType)
-
 	} else if from.Kind() == reflect.Slice && toType.Kind() == reflect.Slice {
 		return m.convertSlice(from, toType)
-
-	} else {
-		return reflect.Zero(toType), errors.Errorf("can't convert data %+v -> %+v", from, toType)
-
+	} else if from.Type().ConvertibleTo(toType) {
+		return from.Convert(toType), nil
+	} else if m.canScan(toType) {
+		return m.scan(from, toType)
+	} else if from.Kind() == reflect.Ptr {
+		return m.convert(from.Elem(), toType)
 	}
+
+	return reflect.Zero(toType), errors.Errorf("can't convert data %+v -> %+v", from, toType)
 }
 
 func (m *mapper) canScan(t reflect.Type) bool {
@@ -291,13 +287,19 @@ func forceAddr(v reflect.Value) reflect.Value {
 
 func namesOf(field reflect.StructField) []string {
 	names := make([]string, 0, 2)
+	skip := false
 	for _, tagName := range tagNames {
 		if tag := field.Tag.Get(tagName); tag != "" {
 			name := strings.SplitN(tag, ",", 2)[0]
 			if name != "-" {
 				names = append(names, name)
+			} else {
+				skip = true
 			}
 		}
+	}
+	if skip {
+		return names
 	}
 	return append(names, field.Name)
 }
